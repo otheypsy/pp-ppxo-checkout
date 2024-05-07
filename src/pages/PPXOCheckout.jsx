@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useGetAppState } from '../states/App/AppHooks'
 import { useSetAlert } from '../states/Alert/AlertHooks'
 import { loadPPScript } from '../services/ApiService'
@@ -18,7 +18,7 @@ const ppCart = {
 
 const PPXOCheckoutCore = () => {
     const appState = useGetAppState()
-    const [ppConfig, setPPConfig] = useState()
+    const [isSDKLoaded, setIsSDKLoaded] = useState(false)
 
     useEffect(() => {
         const init = async () => {
@@ -30,15 +30,24 @@ const PPXOCheckoutCore = () => {
                 'client-id': appState.clientId,
                 'disable-funding': 'card',
             })
-
-            // Create PayPal Button Config
-            setPPConfig({
-                createOrder: (data, actions) => actions.order.create(ppCart),
-                onApprove: console.log,
-            })
+            window.paypal && setIsSDKLoaded(true)
         }
         init()
+
+        return () => {
+            setIsSDKLoaded(false)
+        }
     }, [appState.clientId])
+
+    // PayPal Buttons Configuration
+    const ppConfig = useMemo(() => {
+        return !isSDKLoaded
+            ? undefined
+            : {
+                  createOrder: (data, actions) => actions.order.create(ppCart),
+                  onApprove: console.log,
+              }
+    }, [isSDKLoaded])
 
     return (
         <div className="row">
